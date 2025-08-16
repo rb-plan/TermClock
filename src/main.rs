@@ -125,7 +125,7 @@ fn main() -> io::Result<()> {
             let size = f.size();
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([Constraint::Percentage(80), Constraint::Percentage(20)])
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
                 .split(size);
 
             draw_clock(f, chunks[0], &app.config);
@@ -283,11 +283,11 @@ fn draw_sidebar(
     let pad_str = " ".repeat(pad);
     let labels_line = Line::from(vec![
         Span::raw(pad_str.clone()),
-        Span::styled(label_chars.into_iter().collect::<String>(), Style::default().fg(Color::LightBlue)),
+        Span::styled(label_chars.into_iter().collect::<String>(), Style::default().fg(Color::LightRed)),
     ]);
     let ticks_line = Line::from(vec![
         Span::raw(pad_str.clone()),
-        Span::styled(tick_chars.into_iter().collect::<String>(), Style::default().fg(Color::LightBlue)),
+        Span::styled(tick_chars.into_iter().collect::<String>(), Style::default().fg(Color::LightRed)),
     ]);
 
     // Bottom line: bar in Yellow up to current position, rest spaces; overlay value near bar end
