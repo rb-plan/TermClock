@@ -1,0 +1,11 @@
+
+# 温度数据库（amadoi）
+mysql_url: "mysql://user:passwd@10.20.0.26:3306/amadoi"
+
+# 代办数据库（todo_db）
+todo_db_url: "mysql://user:passwd@10.20.0.26:3306/todo_db"
+# 可选：只显示特定 IP 的代办
+todo_ip_filter: "ipaddress"
+
+todo_limit: 4
+todo_task_max_chars: 81
