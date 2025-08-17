@@ -6,6 +6,7 @@ struct FileConfig {
     todos_file: Option<String>,
     todo_task_max_chars: Option<usize>,
     todo_limit: Option<usize>,
+    main_window_percent: u16,
 }
 
 fn load_yaml_config() -> Option<FileConfig> {
@@ -30,6 +31,11 @@ fn load_yaml_config() -> Option<FileConfig> {
             .and_then(|v| v.as_i64())
             .and_then(|n| if n > 0 { Some(n as usize) } else { None })
     };
+    let get_u16 = |key: &str| -> Option<u16> {
+        map.get(&serde_yaml::Value::String(key.to_string()))
+            .and_then(|v| v.as_i64())
+            .and_then(|n| if n > 0 { Some(n as u16) } else { None })
+    };
     Some(FileConfig {
         mysql_url: get_string("mysql_url"),
         todo_db_url: get_string("todo_db_url"),
@@ -37,6 +43,7 @@ fn load_yaml_config() -> Option<FileConfig> {
         todos_file: get_string("todos_file"),
         todo_task_max_chars: get_usize("todo_task_max_chars"),
         todo_limit: get_usize("todo_limit"),
+        main_window_percent: get_u16("main_window_percent").unwrap_or(50),
     })
 }
 use std::fs;
@@ -125,7 +132,7 @@ fn main() -> io::Result<()> {
             let size = f.size();
             let chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                .constraints([Constraint::Percentage(app.config.main_window_percent), Constraint::Percentage(100 - app.config.main_window_percent)])
                 .split(size);
 
             draw_clock(f, chunks[0], &app.config);
@@ -240,20 +247,27 @@ fn draw_sidebar(
     area: Rect,
     app: &mut App,
 ) {
+    // 横向拆分：左=温度计+Todo，右=二维码
+    let hchunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(100), Constraint::Percentage(0)])
+        .split(area);
+    let left = hchunks[0];
+    // 左列：原有垂直布局
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),  // temperature
+            Constraint::Length(2),  // temperature
             Constraint::Min(1),     // todos
         ])
-        .split(area);
+        .split(left);
 
     let temp_str = app.temperature();
     let parsed = parse_temp_celsius(&temp_str);
-    // Dual-line thermometer centered to 80% width: top line shows ticks and labels (LightBlue), bottom shows current bar (Yellow) with value
+    // Dual-line thermometer centered to 80% width: top labels, mid ticks, bottom bar
     let area = chunks[0];
     let width = area.width as usize;
-    let mut usable = ((width as f64) * 0.8).round() as usize;
+    let mut usable = ((width as f64) * 0.9).round() as usize;
     if usable > width { usable = width; }
     if usable < 30 { usable = 30.min(width); }
     let pad = width.saturating_sub(usable) / 2;
@@ -262,7 +276,6 @@ fn draw_sidebar(
     let pos = parsed.map(|v| ((v as f64 - min_c) / (max_c - min_c)).clamp(0.0,1.0)).unwrap_or(0.0);
     let bar_len = (pos * (usable as f64)).round() as usize;
 
-    // Top line: baseline + ticks; labels will be on a separate line above
     let mut tick_chars: Vec<char> = vec!['─'; usable];
     let tick_degs = [-10, 0, 10, 20, 30, 40, 50];
     let mut tick_positions: Vec<usize> = Vec::with_capacity(tick_degs.len());
@@ -271,7 +284,6 @@ fn draw_sidebar(
         let idx = (t * usable as f64).round() as usize;
         if idx < usable { tick_chars[idx] = '┬'; tick_positions.push(idx); }
     }
-    // Labels line (above the tick line)
     let mut label_chars: Vec<char> = vec![' '; usable];
     for (&deg, &idx) in tick_degs.iter().zip(tick_positions.iter()) {
         let s = format!("{}", deg);
@@ -290,35 +302,33 @@ fn draw_sidebar(
         Span::styled(tick_chars.into_iter().collect::<String>(), Style::default().fg(Color::LightRed)),
     ]);
 
-    // Bottom line: bar in Yellow up to current position, rest spaces; overlay value near bar end
     let mut bottom_chars: Vec<char> = vec![' '; usable];
     for i in 0..usable { if i < bar_len { bottom_chars[i] = '━'; } }
     let label = parsed.map(|v| format!(" {v}℃")).unwrap_or_else(|| " --".to_string());
     let overlay_at = bar_len.min(usable.saturating_sub(label.len()));
     for (i, ch) in label.chars().enumerate() { if overlay_at + i < usable { bottom_chars[overlay_at + i] = ch; } }
     let bottom_line = Line::from(vec![
-        Span::raw(pad_str),
+        Span::raw(pad_str.clone()),
         Span::styled(bottom_chars.into_iter().collect::<String>(), Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
     ]);
 
     let temp_widget = Paragraph::new(vec![labels_line, ticks_line, bottom_line]).alignment(ratatui::layout::Alignment::Left);
     f.render_widget(temp_widget, area);
 
-    // Apply max chars from config file if provided
+    // Todo 居中 80% 且区域内左对齐
+    let todos_area = chunks[1];
+    let width = todos_area.width as usize;
+    let mut usable = ((width as f64) * 0.9).round() as usize;
+    if usable > width { usable = width; }
+    let pad = width.saturating_sub(usable) / 2;
+    let pad_str = " ".repeat(pad);
+
     let mut max_chars: Option<usize> = None;
     if let Some(cfg) = load_yaml_config() { max_chars = cfg.todo_task_max_chars; }
     let truncate = |s: &str| -> String {
         if let Some(m) = max_chars { if s.chars().count() > m { let mut c = s.chars(); return c.by_ref().take(m).collect::<String>() + "…"; } }
         s.to_string()
     };
-
-    // Center to 80% width and left-align content inside that region
-    let todos_area = chunks[1];
-    let width = todos_area.width as usize;
-    let mut usable = ((width as f64) * 0.8).round() as usize;
-    if usable > width { usable = width; }
-    let pad = width.saturating_sub(usable) / 2;
-    let pad_str = " ".repeat(pad);
 
     let items: Vec<ListItem> = if app.todos.is_empty() {
         vec![ListItem::new(Span::raw(format!("{}(no todos)", pad_str)))]
@@ -333,6 +343,7 @@ fn draw_sidebar(
     };
     let todos_widget = List::new(items);
     f.render_widget(todos_widget, todos_area);
+
 }
 
 fn load_todos_from_config(config: &Config) -> Vec<String> {
@@ -629,6 +640,7 @@ struct Config {
     todo_db_url: Option<String>,
     todo_ip_filter: Option<String>,
     todo_limit: Option<usize>,
+    main_window_percent: u16,
 }
 
 fn parse_args() -> Config {
@@ -718,7 +730,7 @@ fn parse_args() -> Config {
         i += 1;
     }
 
-    Config { time_scale_x, time_scale_y, date_scale_x, time_color, date_color, todos_color, chime_enabled, mysql_url, todo_db_url, todo_ip_filter, todo_limit: None }
+    Config { time_scale_x, time_scale_y, date_scale_x, time_color, date_color, todos_color, chime_enabled, mysql_url, todo_db_url, todo_ip_filter, todo_limit: None, main_window_percent: 50 }
 }
 
 fn parse_color(name: &str) -> Option<Color> {
