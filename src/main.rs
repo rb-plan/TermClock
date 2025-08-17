@@ -43,7 +43,7 @@ fn load_yaml_config() -> Option<FileConfig> {
         todos_file: get_string("todos_file"),
         todo_task_max_chars: get_usize("todo_task_max_chars"),
         todo_limit: get_usize("todo_limit"),
-        main_window_percent: get_u16("main_window_percent").unwrap_or(50),
+        main_window_percent: get_u16("main_window_percent").unwrap_or(80), 
     })
 }
 use std::fs;
@@ -257,7 +257,7 @@ fn draw_sidebar(
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(2),  // temperature
+            Constraint::Length(4),  // temperature
             Constraint::Min(1),     // todos
         ])
         .split(left);
@@ -282,7 +282,7 @@ fn draw_sidebar(
     for &deg in &tick_degs {
         let t = (deg as f64 - min_c) / (max_c - min_c);
         let idx = (t * usable as f64).round() as usize;
-        if idx < usable { tick_chars[idx] = '┬'; tick_positions.push(idx); }
+        if idx < usable { tick_chars[idx] = '┴'; tick_positions.push(idx); }
     }
     let mut label_chars: Vec<char> = vec![' '; usable];
     for (&deg, &idx) in tick_degs.iter().zip(tick_positions.iter()) {
@@ -318,7 +318,7 @@ fn draw_sidebar(
     // Todo 居中 80% 且区域内左对齐
     let todos_area = chunks[1];
     let width = todos_area.width as usize;
-    let mut usable = ((width as f64) * 0.9).round() as usize;
+    let mut usable = ((width as f64) * 0.8).round() as usize;
     if usable > width { usable = width; }
     let pad = width.saturating_sub(usable) / 2;
     let pad_str = " ".repeat(pad);
@@ -730,7 +730,7 @@ fn parse_args() -> Config {
         i += 1;
     }
 
-    Config { time_scale_x, time_scale_y, date_scale_x, time_color, date_color, todos_color, chime_enabled, mysql_url, todo_db_url, todo_ip_filter, todo_limit: None, main_window_percent: 50 }
+    Config { time_scale_x, time_scale_y, date_scale_x, time_color, date_color, todos_color, chime_enabled, mysql_url, todo_db_url, todo_ip_filter, todo_limit: None, main_window_percent: 80 }
 }
 
 fn parse_color(name: &str) -> Option<Color> {
