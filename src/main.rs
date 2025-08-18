@@ -645,14 +645,14 @@ struct Config {
 
 fn parse_args() -> Config {
     // defaults: date smaller than time
-    let time_scale_x: u16 = 2;
-    let time_scale_y: u16 = 2;
-    let date_scale_x: u16 = 1;
+    let mut time_scale_x: u16 = 2;
+    let mut time_scale_y: u16 = 2;
+    let mut date_scale_x: u16 = 1;
     let mut main_window_percent: u16 = 70;
 
-    let time_color = Color::White;
-    let date_color = Color::Yellow;
-    let todos_color = Color::White;
+    let mut time_color = Color::White;
+    let mut date_color = Color::Yellow;
+    let mut todos_color = Color::White;
     let chime_enabled = true;
     let mut mysql_url: Option<String> = None;
     let mut todo_db_url: Option<String> = None;
@@ -667,7 +667,48 @@ fn parse_args() -> Config {
         main_window_percent = file_cfg.main_window_percent;
     }
 
-    // 不再读取命令行参数，全部从配置文件中获取
+    // 仅从命令行读取“字体/颜色”等展示相关参数；数据源与布局仅从配置文件读取
+    let args: Vec<String> = env::args().collect();
+    let mut i = 1;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--scale" => {
+                if i + 1 < args.len() {
+                    if let Ok(v) = args[i + 1].parse::<u16>() {
+                        let v = v.max(1);
+                        // 时间XY等比，日期横向略小一号
+                        time_scale_x = v;
+                        time_scale_y = v;
+                        date_scale_x = v.saturating_sub(1).max(1);
+                    }
+                    i += 1;
+                }
+            }
+            "--time-scale-x" => { if i + 1 < args.len() { if let Ok(v) = args[i+1].parse::<u16>() { time_scale_x = v.max(1); } i += 1; } }
+            "--time-scale-y" => { if i + 1 < args.len() { if let Ok(v) = args[i+1].parse::<u16>() { time_scale_y = v.max(1); } i += 1; } }
+            "--date-scale-x" => { if i + 1 < args.len() { if let Ok(v) = args[i+1].parse::<u16>() { date_scale_x = v.max(1); } i += 1; } }
+            "--time-color" => {
+                if i + 1 < args.len() {
+                    if let Some(c) = parse_color(&args[i + 1]) { time_color = c; }
+                    i += 1;
+                }
+            }
+            "--date-color" => {
+                if i + 1 < args.len() {
+                    if let Some(c) = parse_color(&args[i + 1]) { date_color = c; }
+                    i += 1;
+                }
+            }
+            "--todos-color" => {
+                if i + 1 < args.len() {
+                    if let Some(c) = parse_color(&args[i + 1]) { todos_color = c; }
+                    i += 1;
+                }
+            }
+            _ => {}
+        }
+        i += 1;
+    }
 
     Config { time_scale_x, time_scale_y, date_scale_x, time_color, date_color, todos_color, chime_enabled, mysql_url, todo_db_url, todo_ip_filter, todo_limit: None, main_window_percent }
 }
