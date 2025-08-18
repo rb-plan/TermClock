@@ -8,7 +8,7 @@ todo_db_url: "mysql://usr1:debian@10.20.0.26:3306/todo_db"
 todo_ip_filter: "ipaddress"
 
 # 可选：代办数量限制
-todo_limit: 12
+todo_limit: 5
 # 可选：代办任务最大长度
 todo_task_max_chars: 68
 
