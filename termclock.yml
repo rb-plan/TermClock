@@ -1,0 +1,24 @@
+
+# API配置
+api_base_url: "http://10.20.0.26:8000"
+
+# 温度传感器设备编号
+device_code: "SENS-FARM01"
+
+# 温度刷新频率（秒）
+temp_refresh_interval: 5
+
+# 温度数据库（amadoi）- 已弃用，使用API
+# mysql_url: "mysql://usr1:debian@10.20.0.26:3306/amadoi"
+
+# 代办数据库（todo_db）- 已弃用，使用API
+# todo_db_url: "mysql://usr1:debian@10.20.0.26:3306/todo_db"
+# 可选：只显示特定 IP 的代办
+todo_ip_filter: "ipaddress"
+
+# 可选：代办数量限制
+todo_limit: 5
+# 可选：代办任务最大长度
+todo_task_max_chars: 68
+
+main_window_percent: 65
