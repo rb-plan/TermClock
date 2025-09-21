@@ -67,13 +67,47 @@ device_code: "SENS-FARM01"
 # 温度刷新频率（秒）
 temp_refresh_interval: 5
 
+# UI配置
+# 时间字体缩放
+time_scale_x: 2
+time_scale_y: 2
+date_scale_x: 1
+
+# 颜色配置
+time_color: "white"
+date_color: "yellow"
+todos_color: "white"
+
+# 整点报时
+chime_enabled: true
+
 # 待办事项配置
 todo_limit: 5
 todo_task_max_chars: 68
 
-# 界面配置
+# 界面布局
 main_window_percent: 65
 ```
+
+## 配置说明
+
+### UI配置
+- `time_scale_x`, `time_scale_y`: 时间字体缩放（X和Y方向）
+- `date_scale_x`: 日期字体缩放
+- `time_color`: 时间颜色（支持：white, red, green, yellow, blue, magenta, cyan, gray等）
+- `date_color`: 日期颜色
+- `todos_color`: 待办事项颜色
+- `chime_enabled`: 是否启用整点报时
+
+### API配置
+- `api_base_url`: API服务器地址
+- `device_code`: 温度传感器设备编号
+- `temp_refresh_interval`: 温度刷新间隔（秒）
+
+### 其他配置
+- `main_window_percent`: 主窗口占屏幕百分比
+- `todo_limit`: 待办事项显示数量限制
+- `todo_task_max_chars`: 待办事项任务最大字符数
 
 ## 构建和运行
 

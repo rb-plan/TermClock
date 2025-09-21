@@ -37,6 +37,10 @@ pub fn load_yaml_config() -> Option<FileConfig> {
             .and_then(|v| v.as_i64())
             .and_then(|n| if n > 0 { Some(n as u64) } else { None })
     };
+    let get_bool = |key: &str| -> Option<bool> {
+        map.get(&serde_yaml::Value::String(key.to_string()))
+            .and_then(|v| v.as_bool())
+    };
     Some(FileConfig {
         api_base_url: get_string("api_base_url"),
         device_code: get_string("device_code"),
@@ -45,12 +49,20 @@ pub fn load_yaml_config() -> Option<FileConfig> {
         todos_file: get_string("todos_file"),
         todo_task_max_chars: get_usize("todo_task_max_chars"),
         todo_limit: get_usize("todo_limit"),
-        main_window_percent: get_u16("main_window_percent").unwrap_or(80), 
+        main_window_percent: get_u16("main_window_percent").unwrap_or(80),
+        // UI配置
+        time_scale_x: get_u16("time_scale_x"),
+        time_scale_y: get_u16("time_scale_y"),
+        date_scale_x: get_u16("date_scale_x"),
+        time_color: get_string("time_color"),
+        date_color: get_string("date_color"),
+        todos_color: get_string("todos_color"),
+        chime_enabled: get_bool("chime_enabled"),
     })
 }
 
 pub fn parse_args() -> Config {
-    // defaults: date smaller than time
+    // 默认值
     let mut time_scale_x: u16 = 2;
     let mut time_scale_y: u16 = 2;
     let mut date_scale_x: u16 = 1;
@@ -59,64 +71,40 @@ pub fn parse_args() -> Config {
     let mut time_color = Color::White;
     let mut date_color = Color::Yellow;
     let mut todos_color = Color::White;
-    let chime_enabled = true;
+    let mut chime_enabled = true;
     let mut api_base_url: Option<String> = None;
-    let mut device_code: String = "SENS-FARM01".to_string(); // 默认设备编号
-    let mut temp_refresh_interval: u64 = 5; // 默认5秒
+    let mut device_code: String = "SENS-FARM01".to_string();
+    let mut temp_refresh_interval: u64 = 5;
     let mut todo_ip_filter: Option<String> = None;
 
-    // 1) Load YAML defaults if present
+    // 从配置文件加载所有设置
     if let Some(file_cfg) = load_yaml_config() {
+        // API配置
         if file_cfg.api_base_url.is_some() { api_base_url = file_cfg.api_base_url.clone(); }
         if let Some(device) = file_cfg.device_code { device_code = device; }
         if let Some(interval) = file_cfg.temp_refresh_interval { temp_refresh_interval = interval; }
         if file_cfg.todo_ip_filter.is_some() { todo_ip_filter = file_cfg.todo_ip_filter.clone(); }
-        // take main window split percent from file config
         main_window_percent = file_cfg.main_window_percent;
+        
+        // UI配置
+        if let Some(scale) = file_cfg.time_scale_x { time_scale_x = scale; }
+        if let Some(scale) = file_cfg.time_scale_y { time_scale_y = scale; }
+        if let Some(scale) = file_cfg.date_scale_x { date_scale_x = scale; }
+        if let Some(chime) = file_cfg.chime_enabled { chime_enabled = chime; }
+        
+        // 颜色配置
+        if let Some(color_str) = file_cfg.time_color {
+            if let Some(color) = parse_color(&color_str) { time_color = color; }
+        }
+        if let Some(color_str) = file_cfg.date_color {
+            if let Some(color) = parse_color(&color_str) { date_color = color; }
+        }
+        if let Some(color_str) = file_cfg.todos_color {
+            if let Some(color) = parse_color(&color_str) { todos_color = color; }
+        }
     }
 
-    // 仅从命令行读取"字体/颜色"等展示相关参数；数据源与布局仅从配置文件读取
-    let args: Vec<String> = env::args().collect();
-    let mut i = 1;
-    while i < args.len() {
-        match args[i].as_str() {
-            "--scale" => {
-                if i + 1 < args.len() {
-                    if let Ok(v) = args[i + 1].parse::<u16>() {
-                        let v = v.max(1);
-                        // 时间XY等比，日期横向略小一号
-                        time_scale_x = v;
-                        time_scale_y = v;
-                        date_scale_x = v.saturating_sub(1).max(1);
-                    }
-                    i += 1;
-                }
-            }
-            "--time-scale-x" => { if i + 1 < args.len() { if let Ok(v) = args[i+1].parse::<u16>() { time_scale_x = v.max(1); } i += 1; } }
-            "--time-scale-y" => { if i + 1 < args.len() { if let Ok(v) = args[i+1].parse::<u16>() { time_scale_y = v.max(1); } i += 1; } }
-            "--date-scale-x" => { if i + 1 < args.len() { if let Ok(v) = args[i+1].parse::<u16>() { date_scale_x = v.max(1); } i += 1; } }
-            "--time-color" => {
-                if i + 1 < args.len() {
-                    if let Some(c) = parse_color(&args[i + 1]) { time_color = c; }
-                    i += 1;
-                }
-            }
-            "--date-color" => {
-                if i + 1 < args.len() {
-                    if let Some(c) = parse_color(&args[i + 1]) { date_color = c; }
-                    i += 1;
-                }
-            }
-            "--todos-color" => {
-                if i + 1 < args.len() {
-                    if let Some(c) = parse_color(&args[i + 1]) { todos_color = c; }
-                    i += 1;
-                }
-            }
-            _ => {}
-        }
-        i += 1;
-    }
+    // 所有参数都从配置文件读取，不再支持命令行参数
 
     Config { 
         time_scale_x, 

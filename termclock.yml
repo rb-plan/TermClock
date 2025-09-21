@@ -8,6 +8,20 @@ device_code: "SENS-FARM01"
 # 温度刷新频率（秒）
 temp_refresh_interval: 5
 
+# UI配置
+# 时间字体缩放
+time_scale_x: 2
+time_scale_y: 2
+date_scale_x: 1
+
+# 颜色配置
+time_color: "yellow"
+date_color: "yellow"
+todos_color: "red"
+
+# 整点报时
+chime_enabled: true
+
 # 温度数据库（amadoi）- 已弃用，使用API
 # mysql_url: "mysql://usr1:debian@10.20.0.26:3306/amadoi"
 
@@ -21,4 +35,5 @@ todo_limit: 5
 # 可选：代办任务最大长度
 todo_task_max_chars: 68
 
+# 界面布局
 main_window_percent: 65

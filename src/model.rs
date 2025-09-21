@@ -63,6 +63,14 @@ pub struct FileConfig {
     pub todo_task_max_chars: Option<usize>,
     pub todo_limit: Option<usize>,
     pub main_window_percent: u16,
+    // UI配置
+    pub time_scale_x: Option<u16>,
+    pub time_scale_y: Option<u16>,
+    pub date_scale_x: Option<u16>,
+    pub time_color: Option<String>,
+    pub date_color: Option<String>,
+    pub todos_color: Option<String>,
+    pub chime_enabled: Option<bool>,
 }
 
 // 应用配置结构
